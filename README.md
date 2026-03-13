@@ -48,7 +48,7 @@ Uses `headlinify` on the current selection.
 ### `paste`
 A script that pastes text in the currently focussed window.
 It is meant to be used by other programs.
-It determines the currently focused window and "presses" Ctrl + Shift + V if it's a terminal or Ctrl + V otherwise.
+It determines the currently focused window and "presses" <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> if it's a terminal or <kbd>Ctrl</kbd> + <kbd>V</kbd> otherwise.
 
 ### `pdfreplace`
 Find and replace multiple strings in a PDF while trying to preserve the appearance.
