@@ -3,6 +3,12 @@
 ### `anonymize`
 Anonymizes a text by replacing words with predefined placeholders.
 
+#### anonymize-paste
+
+Uses `anonymize` on the content of the clipboard and pastes it to the currently focused window.
+
+![live demo gif](./misc/anonymize.gif)
+
 ### `fix_broken_symlinks`
 Interactively repair broken symlinks using plocate.
 
@@ -32,6 +38,12 @@ Apply headline/title-case capitalization to text.
 > ./headlinify "the man with the golden gun"
 The man With the Golden Gun
 ```
+
+#### headlinify-highlight
+
+Uses `headlinify` on the current selection.
+
+![live demo gif](./misc/headlinify.gif)
 
 ### `paste`
 A script that pastes text in the currently focussed window.
