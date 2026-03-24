@@ -1,20 +1,15 @@
 #!/usr/bin/python3
-# Version: 2
-
-# 2: isinstance() instead of type(); simplified help check; print help when called without args
 
 import sys, os
 
-def strconv(string):
-    if isinstance(string, list):
-        string = " ".join(string)
-    elif isinstance(string, str):
-        pass
-    else:
-        raise RuntimeError("Need a list or str, not %s!" % type(string))
-
+def strconv(text: str) -> str:
+    """
+    Transliterates German umlauts, replaces spaces and slashes with underscores,
+    and drops remaining non-ASCII characters to generate safe directory names.
+    """
     translate = {
         ' ':  '_',
+        '/': '_',
         'ß': 'ss',
         'ä': 'ae',
         'ö': 'oe',
@@ -22,22 +17,35 @@ def strconv(string):
         'Ä': 'Ae',
         'Ö': 'Oe',
         'Ü': 'Ue',
-        "'":  '',
+        "'":  None,
     }
 
-    for key, value in translate.items():
-        string = string.replace(key, value)
+    mapping = str.maketrans(translate)
 
-    string = string.encode('utf-8', 'surrogateescape').decode('ascii', 'ignore')
+    translated = text.translate(mapping)
 
-    return string
+    # 2. Drop any remaining non-ASCII characters
+    return translated.encode('ascii', 'ignore').decode('ascii')
 
 if __name__ == "__main__":
     name = os.path.basename(sys.argv[0])
 
-    if len(sys.argv) == 1 or any(arg in sys.argv for arg in ('-h', '--help')):
-        print("{program} converts a string with spaces and non-ASCII into spaceless ASCII.\n".format(program=name))
-        print("Usage: {program} \"<string>\"\n".format(program=name))
+    # 1. Print help if requested
+    if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
+        print(f"{name} converts a string with spaces and non-ASCII into spaceless ASCII.\n")
+        print(f"Usage: {name} \"<string>\" or echo \"<string>\" | {name}\n")
         print("\t-h, --help: Print help")
+        sys.exit(0)
+
+    # 2. Prefer command-line arguments over stdin
+    if len(sys.argv) > 1:
+        input_text = " ".join(sys.argv[1:])
+    # 3. Check if data is piped via stdin
+    elif not sys.stdin.isatty():
+        input_text = sys.stdin.read().rstrip('\r\n')
+    # 4. No input provided
     else:
-        print(strconv(sys.argv[1:]))
+        sys.stderr.write("Error: No input provided.\n")
+        sys.exit(1)
+
+    print(strconv(input_text))
