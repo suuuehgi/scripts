@@ -49,15 +49,20 @@ Uses `headlinify` on the current selection.
 A script that pastes text in the currently focussed window.
 It is meant to be used by other programs.
 It determines the currently focused window and "presses" <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> if it's a terminal or <kbd>Ctrl</kbd> + <kbd>V</kbd> otherwise.
+It expects the text as an argument: `./paste.bash "Hello World!"`
 
 ### `pdfreplace`
 Find and replace multiple strings in a PDF while trying to preserve the appearance.
 
 ### `strconv`
 strconv converts a string with spaces and non-ascii into spaceless-ascii.
+It is intended to sanitize directory names.
 
 ```bash
 $ strconv Die Lösung des Problöms ißt Gemüse
+Die_Loesung_des_Probloems_isst_Gemuese
+
+$ echo 'Die Lösung des Problöms ißt Gemüse' | strconv
 Die_Loesung_des_Probloems_isst_Gemuese
 ```
 
