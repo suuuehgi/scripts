@@ -5,14 +5,16 @@ set -euo pipefail
 # Fall back to the predictable systemd socket path so qdbus-qt6 can reach KWin and Klipper.
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
 
-# AppImage bundles override LD_LIBRARY_PATH; unset it so system tools use system libraries
+# AppImages sometimes bundle override LD_LIBRARY_PATH; unset it so system tools use system libraries
+# (In case the script is being executed by an AppImage.)
 unset LD_LIBRARY_PATH
 
 # Known terminal window classes (lowercase for matching)
-TERMINALS="alacritty|konsole|xterm|kitty|foot|wezterm|gnome-terminal|tilix|terminator|yakuake|rxvt|urxvt|xfce4-terminal"
+# Add yours: C. f. output of `kdotool getactivewindow getwindowclassname`
+TERMINALS="alacritty|konsole|xterm|terminator|rxvt|terminal"
 
 if [[ "${1-}" == "-h" || "${1-}" == "--help" ]]; then
-cat << EOF
+    cat << EOF
 Usage: ${0##*/} <text>
 
 A Wayland-native paste script.
@@ -21,64 +23,43 @@ Pastes <text> into the focused window.
 Uses Ctrl+Shift+V for terminal emulators and Ctrl+V for GUI applications.
 
 Notes:
-- Requires: ydotool, wl-copy, qdbus-qt6, journalctl
-- KDE Wayland only (uses KWin scripting to detect the active window class)
+- Requires: qdbus-qt6, wl-copy, wl-paste, ydotool, kdotool and kdialog
 - ydotoold daemon must be running
 
 Examples:
 ${0##*/} "Hello World"
 ${0##*/} "foo bar"
 EOF
-exit 0
+    exit 0
 fi
 
 if [[ $# -lt 1 || -z "${1-}" ]]; then
-    echo "Error: no text argument provided. Use -h for help." >&2
+    echo "Error: no text argument provided. Use -h/--help for help." >&2
     exit 1
 fi
 
 text="$1"
 
+# Used instead of stderr because this script is typically invoked in the background.
+notify_error() {
+    kdialog --title "${0##*/}" --passivepopup "Paste failed: $1" 3
+}
+
 # Check for the presence of the used commands
-for cmd in qdbus-qt6 wl-copy ydotool journalctl; do
-    command -v "$cmd" &>/dev/null || { echo "Error: missing required command: $cmd" >&2; exit 1; }
+for cmd in qdbus-qt6 wl-copy wl-paste ydotool kdotool kdialog; do
+    # command -v "$cmd" &>/dev/null || { echo "Error: missing required command: $cmd" >&2; exit 1; }
+    command -v "$cmd" &>/dev/null || { notify_error "Error: missing required command: $cmd"; exit 1; }
 done
 
 get_active_window_class() {
-    local tmpscript marker script_id wclass
-    tmpscript=$(mktemp /tmp/kwin_wclass_XXXX.js)
-    marker="DOTOOL_WCLASS_$$"
-    cat > "$tmpscript" << JSEOF
-console.info("${marker}:" + workspace.activeWindow.resourceClass);
-JSEOF
+    local wclass
+    wclass=$(kdotool getactivewindow getwindowclassname 2>/dev/null)
 
-    script_id=$(qdbus-qt6 org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript "$tmpscript" "$marker" 2>/dev/null)
-
-    # Bail out early if KWin refused to load the script
-    if [[ -z "$script_id" ]]; then
-        rm -f "$tmpscript"
-        echo ""
-        return
+    if [[ -z "$wclass" ]]; then
+        notify_error "Could not detect active window class via kdotool."
+        exit 1
     fi
 
-    qdbus-qt6 org.kde.KWin "/Scripting/Script${script_id}" org.kde.kwin.Script.run 2>/dev/null
-
-    # KWin scripts output asynchronously to the journal; poll until result appears
-    # (up to 10 × 20ms = 200ms max)
-    wclass=""
-    for _ in {1..10}; do
-        sleep 0.02
-        wclass=$(journalctl --user --since "2 seconds ago" --no-pager 2>/dev/null \
-            | grep -F "$marker" | tail -1 | sed "s/.*${marker}://")
-        [[ -n "$wclass" ]] && break
-    done
-
-    qdbus-qt6 org.kde.KWin "/Scripting/Script${script_id}" org.kde.kwin.Script.stop 2>/dev/null || true
-
-    # Unregister from KWin — without this, each call leaks a script registration
-    qdbus-qt6 org.kde.KWin /Scripting org.kde.kwin.Scripting.unloadScript "$marker" &>/dev/null || true
-
-    rm -f "$tmpscript"
     echo "$wclass"
 }
 
@@ -91,21 +72,32 @@ is_terminal() {
 terminal_mode=false
 is_terminal && terminal_mode=true
 
-# Save previous clipboard entry from Klipper history before overwriting
+# Save the current clipboard content from Klipper so it can be restored after pasting.
 old_clipboard=$(qdbus-qt6 org.kde.klipper /klipper \
     org.kde.klipper.klipper.getClipboardHistoryItem 0 2>/dev/null || true)
 
-# Copy transcribed text to clipboard
+# Write the text to the Wayland clipboard
 printf %s "$text" | wl-copy --type 'text/plain;charset=utf-8'
 
-# wait until pasting to clipboard succeeded (max ~500ms)
+# Wait for the Wayland compositor to recognize the new clipboard content (max 500ms).
+# wl-copy forks to the background, so this loop verifies it is actually available.
+clipboard_ok=false
 for _ in {1..25}; do
-    wl-paste --no-newline 2>/dev/null | grep -qF "$result" && break
+    if wl-paste --no-newline 2>/dev/null | grep -qF -- "$text"; then
+        clipboard_ok=true
+        break
+    fi
     sleep 0.02
 done
 
+if ! $clipboard_ok; then
+    notify_error "Clipboard content was not confirmed after 500 ms — aborting."
+    exit 1
+fi
+
+# Send the paste keystroke to the focused window.
 # Terminals require Ctrl+Shift+V; GUI apps use Ctrl+V
-# Ctrl (29), Shift (42), V (47)
+# ydotool key codes: Ctrl=29, Shift=42, V=47. Suffix :1 = key-down, :0 = key-up.
 if $terminal_mode; then
     # Ctrl+Shift+V
     ydotool key 29:1 42:1 47:1 47:0 42:0 29:0
@@ -114,11 +106,12 @@ else
     ydotool key 29:1 47:1 47:0 29:0
 fi
 
-# Wait for the paste to complete before restoring the clipboard;
-# restoring too early causes the old content to be pasted instead of the transcription.
-sleep 0.3
+# Wait for the target application to consume the paste before restoring the
+# clipboard. Restoring too early causes the old content to be pasted instead
+# of the intended text. There is no lightweight event to hook here.
+sleep 0.2
 
-# Restore the clipboard to its prior state
+# Restore the clipboard to its state before this script ran.
 if [[ -n "$old_clipboard" ]]; then
     qdbus-qt6 org.kde.klipper /klipper org.kde.klipper.klipper.setClipboardContents "$old_clipboard" 2>/dev/null || true
 else
