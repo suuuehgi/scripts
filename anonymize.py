@@ -146,12 +146,17 @@ def make_case_preserving_replacer(replacement: str):
     """
     def replacer(match: re.Match) -> str:
         matched = match.group()
+        # Don't change capitalization if the match does not start with a letter, e.g. [URL], or 12345...
         if not matched or not replacement[0].isalpha():
             return replacement
+        # HELLO --> WORLD
         if matched.isupper():
             return replacement.upper()
+        # Jane Street 43 --> Johns Street 1
+        # or
+        # Jane --> John for "jane|john" in user config (preserve capitalization)
         if matched[0].isupper():
-            return replacement.capitalize()
+            return replacement[0].upper() + replacement[1:]
         return replacement
     return replacer
 
@@ -229,7 +234,7 @@ def main() -> int:
   %(prog)s < input.log > output.log
   %(prog)s -f input.log -o output.log
   %(prog)s --check < input.log
-  %(prog)s -d ip
+  %(prog)s -d ip email
   %(prog)s -r "\\bfoo\\b" "[BAR]" -r "\\bbaz\\b" "[QUX]"
   %(prog)s --no-user-config < input.log
 
@@ -249,7 +254,7 @@ Pattern file format:
     parser.add_argument('-p', '--patterns', type=Path, help='Custom pattern file')
     parser.add_argument('--check', action='store_true', help='Check mode: find matches without replacing')
     parser.add_argument('-D', '--no-defaults', action='store_true', help='Disable all default patterns')
-    parser.add_argument('-d', '--disable', nargs='+', metavar='NAME',
+    parser.add_argument('-d', '--disable', action='extend', nargs='+', metavar='NAME',
                         choices=list(DEFAULT_PATTERNS.keys()) + ['ip'],
                         default=[], help=f'Disable specific default patterns ({valid_names}); "ip" disables both ipv4 and ipv6')
     parser.add_argument('-r', '--replace', nargs=2, metavar=('PATTERN', 'REPLACEMENT'),
