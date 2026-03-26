@@ -5,17 +5,12 @@ set -euo pipefail
 text=$(wl-paste 2>/dev/null) || { echo "Nothing copied" >&2; exit 1; }
 
 # Transform
+# (anonymize is a symlink to anonymize.py)
 result=$(echo "$text" | ~/.local/bin/anonymize)
 
 # Write to clipboard and paste
 printf %s "$result" | wl-copy --type 'text/plain;charset=utf-8'
 
-# wait until pasting to clipboard succeeded (max ~500ms)
-for _ in {1..25}; do
-    wl-paste --no-newline 2>/dev/null | grep -qF "$result" && break
-    sleep 0.02
-done
-
 # Alternative: ydotool key 29:1 47:1 47:0 29:0   # Ctrl+V
-# (pasty is a symlink to anonymize.py)
+# (pasty is a symlink to paste.bash)
 ~/.local/bin/pasty "$result"
