@@ -70,7 +70,7 @@ def cli():
 @click.argument("file", type=click.Path(exists=True))
 @click.argument("tags", nargs=-1, required=True)
 def add(file, tags):
-    """Add one or more TAGS to FILE (idempotent)."""
+    """Add one or more TAGS (separated by spaces) to FILE"""
     current = get_tags(file)
     added = [t for t in tags if t not in current]
     set_tags(file, current + added)
@@ -84,7 +84,7 @@ def add(file, tags):
 @click.argument("file", type=click.Path(exists=True))
 @click.argument("tags", nargs=-1, required=True)
 def rm(file, tags):
-    """Remove one or more TAGS from FILE."""
+    """Remove one or more TAGS (separated by spaces) from FILE."""
     current = get_tags(file)
     removed = [t for t in tags if t in current]
     set_tags(file, [t for t in current if t not in tags])
@@ -153,6 +153,7 @@ def date_cmd(file, value, delete):
         _set_xattr(file, DATE_ATTR, value)
         click.echo(f"Date set to {value}.")
 
+cli.add_command(show, name="list")
 
 if __name__ == "__main__":
     cli()
