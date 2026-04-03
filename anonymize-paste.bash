@@ -6,7 +6,7 @@ text=$(wl-paste 2>/dev/null) || { echo "Nothing copied" >&2; exit 1; }
 
 # Anonymize
 # (anonymize is a symlink to anonymize.py)
-result="$(echo "$text" | ~/.local/bin/anonymize)"
+result="$(echo "$text" | ~/.local/bin/anonymize -d url)"
 
 # Enclose in ``` (markdown code formatters)
 result=$(printf '```\n%s\n```' "$result")

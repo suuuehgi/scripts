@@ -109,7 +109,7 @@ fi
 # Wait for the target application to consume the paste before restoring the
 # clipboard. Restoring too early causes the old content to be pasted instead
 # of the intended text. There is no lightweight event to hook here.
-sleep 0.2
+sleep 0.3
 
 # Restore the clipboard to its state before this script ran.
 if [[ -n "$old_clipboard" ]]; then
