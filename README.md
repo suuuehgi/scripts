@@ -1,11 +1,24 @@
 # Scripts - Random Collection of Useful Scripts
 
+## `tagsearch`
+
+Tag search engine built around `baloosearch6` for more refined searching (`baloosearch6` only supports `AND`, `OR` and paranthesis).
+`tagsearch` adds a `NOT` operator for the `user.xdg.tags` field as well as `==`,  `!=`,  `<`,  `<=`,  `>` and  `>=` operators for the `user.dublincore.date` field (see `ftag`).
+
+E.g.
+```bash
+$ tagsearch '(#medical or #health) not #invoice and date >= 2025-01-01'
+```
+
 ## `ftag`
 
 Tag files using extended filesystem attributes.
 They will automatically show up in Dolphin.
 
 E.g., `ftag add <file> invoice medical john`
+
+`ftag` also supports setting a YYYY-MM-DD date in `user.dublincore.date`.
+This might e.g. be the date marked on a digitalized letter.
 
 ## `anonymize`
 Anonymizes a text by replacing words with predefined placeholders.
@@ -19,7 +32,7 @@ Uses `anonymize` on the content of the clipboard and pastes it to the currently 
 ## `fix_broken_symlinks`
 Interactively repair broken symlinks using plocate.
 
-```bash
+```txt
 Broken: /home/john/.local/bin/headlinify -> /home/john/some/path/headlinify.py
 1) /home/john/some/other/path/headlinify.py
 0) Skip
