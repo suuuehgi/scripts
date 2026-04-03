@@ -2,8 +2,10 @@
 
 ## `tagsearch`
 
-Tag search engine built around `baloosearch6` for more refined searching (`baloosearch6` only supports `AND`, `OR` and paranthesis).
-`tagsearch` adds a `NOT` operator for the `user.xdg.tags` field as well as `==`,  `!=`,  `<`,  `<=`,  `>` and  `>=` operators for the `user.dublincore.date` field (see `ftag`).
+Tag search engine built around `baloosearch6` for more refined searching.
+`baloosearch6` itself only supports `AND`, `OR` and parentheses.
+
+`tagsearch` adds a `NOT` operator for the `user.xdg.tags` field as well as `==`, `!=`, `<`, `<=`, `>` and `>=` operators for the `user.dublincore.date` field (see `ftag`).
 
 E.g.
 ```bash
@@ -13,12 +15,12 @@ $ tagsearch '(#medical or #health) not #invoice and date >= 2025-01-01'
 ## `ftag`
 
 Tag files using extended filesystem attributes.
-They will automatically show up in Dolphin.
+They will automatically show up in Dolphin (as long as the folder is listed in `kcmshell6 kcm_baloofile`).
 
 E.g., `ftag add <file> invoice medical john`
 
 `ftag` also supports setting a YYYY-MM-DD date in `user.dublincore.date`.
-This might e.g. be the date marked on a digitalized letter.
+This might e.g. be the date marked on a digitalized letter (the letter might be scanned months later).
 
 ## `anonymize`
 Anonymizes a text by replacing words with predefined placeholders.
