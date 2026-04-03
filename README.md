@@ -1,15 +1,22 @@
 # Scripts - Random Collection of Useful Scripts
 
-### `anonymize`
+## `ftag`
+
+Tag files using extended filesystem attributes.
+They will automatically show up in Dolphin.
+
+E.g., `ftag add <file> invoice medical john`
+
+## `anonymize`
 Anonymizes a text by replacing words with predefined placeholders.
 
-#### anonymize-paste
+### `anonymize-paste`
 
 Uses `anonymize` on the content of the clipboard and pastes it to the currently focused window.
 
 ![live demo gif](./misc/anonymize.gif)
 
-### `fix_broken_symlinks`
+## `fix_broken_symlinks`
 Interactively repair broken symlinks using plocate.
 
 ```bash
@@ -19,7 +26,7 @@ Broken: /home/john/.local/bin/headlinify -> /home/john/some/path/headlinify.py
 Choose a line number: 1
 ```
 
-### `genpw`
+## `genpw`
 Generate passwords and usernames from /dev/urandom using 'a-zA-Z0-9-!@#$%^&*()_+~'
 
 ```bash
@@ -31,7 +38,7 @@ Iougleicke
 Vaaaaalues
 ```
 
-### `headlinify`
+## `headlinify`
 Apply headline/title-case capitalization to text.
 
 ```bash
@@ -39,22 +46,22 @@ Apply headline/title-case capitalization to text.
 The man With the Golden Gun
 ```
 
-#### headlinify-highlight
+### `headlinify-highlight`
 
 Uses `headlinify` on the current selection.
 
 ![live demo gif](./misc/headlinify.gif)
 
-### `paste`
+## `paste`
 A script that pastes text in the currently focussed window.
 It is meant to be used by other programs.
 It determines the currently focused window and "presses" <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> if it's a terminal or <kbd>Ctrl</kbd> + <kbd>V</kbd> otherwise.
 It expects the text as an argument: `./paste.bash "Hello World!"`
 
-### `pdfreplace`
+## `pdfreplace`
 Find and replace multiple strings in a PDF while trying to preserve the appearance.
 
-### `strconv`
+## `strconv`
 strconv converts a string with spaces and non-ascii into spaceless-ascii.
 It is intended to sanitize directory names.
 
@@ -68,12 +75,12 @@ Die_Loesung_des_Probloems_isst_Gemuese
 
 ---
 
-## Legacy Archive
+# Legacy Archive
 
-### `arXiv`
+## `arXiv`
 Fetch latest papers from arxiv.org
 
-### `telegram-send`
+## `telegram-send`
 
 Sends a file or a message string to a preconfigured Telegram bot.
 
