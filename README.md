@@ -7,7 +7,7 @@ Tag search engine built around `baloosearch6` for more refined searching.
 
 `tagsearch` adds a `NOT` operator for the `user.xdg.tags` field as well as `==`, `!=`, `<`, `<=`, `>` and `>=` operators for the `user.dublincore.date` field (see [`ftag`](#ftag)).
 
-E.g.
+Together something like the following is possible:.
 ```bash
 $ tagsearch '(#medical or #health) not #invoice and date >= 2025-01-01'
 ```
@@ -15,7 +15,9 @@ $ tagsearch '(#medical or #health) not #invoice and date >= 2025-01-01'
 ## `ftag`
 
 Tag files using extended filesystem attributes.
-They will automatically show up in Dolphin (as long as the folder is listed in `kcmshell6 kcm_baloofile`).
+It is mostly a convenience wrapper around `getfattr / setfattr -n user.xdg.tags`.
+
+The tags saved in `user.xdg.tags` will automatically show up in Dolphin (as long as the folder is listed in `kcmshell6 kcm_baloofile`).
 
 E.g., `ftag add <file> invoice medical john`
 
