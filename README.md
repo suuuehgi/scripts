@@ -5,7 +5,7 @@
 Tag search engine built around `baloosearch6` for more refined searching.
 `baloosearch6` itself only supports `AND`, `OR` and parentheses.
 
-`tagsearch` adds a `NOT` operator for the `user.xdg.tags` field as well as `==`, `!=`, `<`, `<=`, `>` and `>=` operators for the `user.dublincore.date` field (see `ftag`).
+`tagsearch` adds a `NOT` operator for the `user.xdg.tags` field as well as `==`, `!=`, `<`, `<=`, `>` and `>=` operators for the `user.dublincore.date` field (see [`ftag`](#ftag)).
 
 E.g.
 ```bash
