@@ -17,7 +17,13 @@ DEFAULT_PATTERNS: dict[str, tuple[str, str]] = {
     'mac':    (r'(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}', '[MAC]'),
     'email':  (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]'),
     'uuid':   (r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b', '[UUID]'),
-    'url':    (r'((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w\-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)', '[URL]'),
+    'url':    (
+        r"\b(?:[A-Za-z]{3,9}://|www\.)"                                        # Scheme (http://, ftp://) or www. prefix
+        r"(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?@)?"                          # Optional user/password auth (user:pass@)
+        r"[A-Za-z0-9.-]+"                                                      # Hostname (example.com)
+        r"(?::\d+)?"                                                           # Optional port (:8080)
+        r"(?:(?:/[A-Za-z0-9_\-\.~!*'();:@&=+$,/?#%]*[A-Za-z0-9_\-~/#+=%])|/)?" # Optional path/query/hash, ensuring it ends cleanly (/path?q=1#top)
+        , '[URL]'),
     'jwt':    (r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b', '[JWT]'),
     'apikey': (r'(?:api[_-]?key|apikey|token)[=:\s]+[\'"]?[A-Za-z0-9_-]{20,}[\'"]?', '[APIKEY]'),
 }
