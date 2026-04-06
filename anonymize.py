@@ -15,15 +15,20 @@ DEFAULT_PATTERNS: dict[str, tuple[str, str]] = {
     'ipv4':   (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)', '[IP]'),
     'ipv6':   (r'(?<![\w:.])(?!::(?:[^\w:.]|$))(?:(?>([a-f0-9]{1,4})(?>:(?1)){7}|(?!(?:[a-f0-9:]*[a-f0-9](?>:|$)){8,})((?1)(?>:(?1)){0,6})?::(?2)?)|(?>(?>(?1)(?>:(?1)){5}:|(?!(?:[a-f0-9:]*[a-f0-9]:){6,})(?3)?::(?>((?1)(?>:(?1)){0,4}):)?)?(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?4)){3}))(?![\w:.])', '[IPv6]'),
     'mac':    (r'(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}', '[MAC]'),
-    'email':  (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]'),
+    'email': (
+        r'\b[A-Za-z0-9._%+-]+'                                                                 # Username part (e.g., john.doe)
+        r'@[A-Za-z0-9.-]+\.'                                                                   # Domain part and dot (e.g., @example.)
+        r'(?!(?:service|scope|slice|socket|target|timer|mount|automount|swap|path|device)\b)' # Forbid systemd units (drops .service, .scope, etc.)
+        r'[A-Za-z]{2,}\b',                                                                      # Top-Level Domain (e.g., com, uk)
+        '[EMAIL]'),
     'uuid':   (r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b', '[UUID]'),
     'url':    (
         r"\b(?:[A-Za-z]{3,9}://|www\.)"                                        # Scheme (http://, ftp://) or www. prefix
         r"(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?@)?"                          # Optional user/password auth (user:pass@)
         r"[A-Za-z0-9.-]+"                                                      # Hostname (example.com)
         r"(?::\d+)?"                                                           # Optional port (:8080)
-        r"(?:(?:/[A-Za-z0-9_\-\.~!*'();:@&=+$,/?#%]*[A-Za-z0-9_\-~/#+=%])|/)?" # Optional path/query/hash, ensuring it ends cleanly (/path?q=1#top)
-        , '[URL]'),
+        r"(?:(?:/[A-Za-z0-9_\-\.~!*'();:@&=+$,/?#%]*[A-Za-z0-9_\-~/#+=%])|/)?",# Optional path/query/hash, ensuring it ends cleanly (/path?q=1#top)
+        '[URL]'),
     'jwt':    (r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b', '[JWT]'),
     'apikey': (r'(?:api[_-]?key|apikey|token)[=:\s]+[\'"]?[A-Za-z0-9_-]{20,}[\'"]?', '[APIKEY]'),
 }
