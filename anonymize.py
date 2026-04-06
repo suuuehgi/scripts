@@ -47,30 +47,31 @@ def resolve_disabled(disabled: list[str]) -> set[str]:
     return result
 
 
-def compile_pattern(pattern_str: str, replacement: str, ignore_case: int, line_num: int | None = None, source: str = '') -> tuple[re.Pattern, str]:
+def compile_pattern(pattern_str: str, replacement: str, ignore_case: int, name: str, line_num: int | None = None, source: str = '') -> tuple[re.Pattern, str, str]:
     """Compile a single regex pattern.
 
     Args:
         pattern_str: Regex pattern string
         replacement: Replacement string
         ignore_case: Regex compile flag
+        name: Name of the pattern for reporting
         line_num: Optional line number for error reporting
         source: Optional source file name for error reporting
 
     Returns:
-        Tuple of compiled pattern and replacement string
+        Tuple of compiled pattern, replacement string, and name
 
     Raises:
         ValueError: If the regex is invalid
     """
     try:
-        return (re.compile(pattern_str, ignore_case), replacement)
+        return (re.compile(pattern_str, ignore_case), replacement, name)
     except re.error as e:
         location = f" at line {line_num} in {source}" if line_num else ""
         raise ValueError(f"Invalid regex{location}: {pattern_str}\nError: {e}")
 
 
-def get_default_patterns(disabled: set[str], ignore_case: int) -> list[tuple[re.Pattern, str]]:
+def get_default_patterns(disabled: set[str], ignore_case: int) -> list[tuple[re.Pattern, str, str]]:
     """Get default sensitive data patterns, excluding any disabled ones.
 
     Args:
@@ -78,16 +79,16 @@ def get_default_patterns(disabled: set[str], ignore_case: int) -> list[tuple[re.
         ignore_case: Regex compile flag
 
     Returns:
-        List of compiled regex patterns and their replacements
+        List of compiled regex patterns, their replacements, and names
     """
     return [
-        compile_pattern(pattern_str, replacement, ignore_case)
+        compile_pattern(pattern_str, replacement, ignore_case, name)
         for name, (pattern_str, replacement) in DEFAULT_PATTERNS.items()
         if name not in disabled
     ]
 
 
-def load_patterns(pattern_file: Path, ignore_case: int) -> list[tuple[re.Pattern, str]]:
+def load_patterns(pattern_file: Path, ignore_case: int) -> list[tuple[re.Pattern, str, str]]:
     """Load custom patterns from a config file.
 
     Each non-comment line must have the format 'pattern|replacement'.
@@ -100,7 +101,7 @@ def load_patterns(pattern_file: Path, ignore_case: int) -> list[tuple[re.Pattern
         ignore_case: Regex compile flag
 
     Returns:
-        List of compiled regex patterns and their replacements
+        List of compiled regex patterns, their replacements, and source names
 
     Raises:
         FileNotFoundError: If pattern file does not exist
@@ -127,7 +128,8 @@ def load_patterns(pattern_file: Path, ignore_case: int) -> list[tuple[re.Pattern
                 words = [w.strip() for w in pattern_str.split(',')]
                 pattern_str = r'\b(?:' + '|'.join(re.escape(w) for w in words) + r')\b'
 
-            patterns.append(compile_pattern(pattern_str, replacement, ignore_case, line_num, str(pattern_file)))
+            name = f"line {line_num} in {pattern_file.name}"
+            patterns.append(compile_pattern(pattern_str, replacement, ignore_case, name, line_num, str(pattern_file)))
 
     return patterns
 
@@ -161,7 +163,7 @@ def make_case_preserving_replacer(replacement: str):
     return replacer
 
 
-def anonymize_line(line: str, patterns: list[tuple[re.Pattern, str]]) -> str:
+def anonymize_line(line: str, patterns: list[tuple[re.Pattern, str, str]]) -> str:
     """Apply all patterns to anonymize a single line.
 
     Case of each match is mirrored in the replacement: all-uppercase matches
@@ -170,37 +172,37 @@ def anonymize_line(line: str, patterns: list[tuple[re.Pattern, str]]) -> str:
 
     Args:
         line: Input line to anonymize
-        patterns: List of compiled regex patterns and their replacements
+        patterns: List of compiled regex patterns, their replacements, and names
 
     Returns:
         Line with all pattern matches replaced
     """
     result = line
-    for pattern, replacement in patterns:
+    for pattern, replacement, _ in patterns:
         result = pattern.sub(make_case_preserving_replacer(replacement), result)
     return result
 
 
-def check_line(line: str, patterns: list[tuple[re.Pattern, str]]) -> list[str]:
+def check_line(line: str, patterns: list[tuple[re.Pattern, str, str]]) -> list[str]:
     """Find all pattern matches in a line without replacing.
 
     Args:
         line: Input line to check
-        patterns: List of compiled regex patterns to search for
+        patterns: List of compiled regex patterns, replacements, and names
 
     Returns:
-        List of matched strings
+        List of matched strings, formatted as "(name): match"
     """
-    return [match.group() for pattern, _ in patterns for match in pattern.finditer(line)]
+    return [f"({name}): {match.group()}" for pattern, _, name in patterns for match in pattern.finditer(line)]
 
 
-def process_stream(input_stream, output_stream, patterns: list[tuple[re.Pattern, str]], check_mode: bool) -> None:
+def process_stream(input_stream, output_stream, patterns: list[tuple[re.Pattern, str, str]], check_mode: bool) -> None:
     """Process input stream line by line and write results to output stream.
 
     Args:
         input_stream: Readable input stream
         output_stream: Writable output stream
-        patterns: List of compiled regex patterns and their replacements
+        patterns: List of compiled regex patterns, their replacements, and names
         check_mode: If True, report matches only without modifying the input
     """
     line_num = 0
@@ -213,7 +215,7 @@ def process_stream(input_stream, output_stream, patterns: list[tuple[re.Pattern,
             matches = check_line(line, patterns)
             if matches:
                 match_count += 1
-                output_stream.write(f"Line {line_num}: {', '.join(matches)}\n")
+                output_stream.write(f"Line {line_num} {', '.join(matches)}\n")
         else:
             output_stream.write(anonymize_line(line, patterns))
 
@@ -231,12 +233,12 @@ def main() -> int:
         description='Anonymize sensitive data in log files',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f'''Examples:
-  %(prog)s < input.log > output.log
-  %(prog)s -f input.log -o output.log
-  %(prog)s --check < input.log
-  %(prog)s -d ip email
-  %(prog)s -r "\\bfoo\\b" "[BAR]" -r "\\bbaz\\b" "[QUX]"
-  %(prog)s --no-user-config < input.log
+  %(prog)s input.log > output.log
+  %(prog)s input.log -o output.log
+  %(prog)s --check input.log
+  %(prog)s -d ip email input.log
+  %(prog)s -r "\\bfoo\\b" "[BAR]" -r "\\bbaz\\b" "[QUX]" input.log
+  cat input.log | %(prog)s --no-user-config
 
 Default pattern file: {default_pattern_file}
 Available default pattern names: {valid_names}
@@ -246,15 +248,16 @@ Pattern file format:
   company-project|[PROJECT]
   anthony|john
   # Comments start with #
-  Note: lower/Title/UPPER case of each match is being mirrored. E.g. "Anthony was scratching his ..." -> "John was scratching his ..."
+Note: lower/Title/UPPER case of each match is being mirrored. E.g. "Anthony was scratching his ..." -> "John was scratching his ..."
         '''
     )
-    parser.add_argument('-f', '--file', type=Path, help='Input file (default: stdin)')
+
+    parser.add_argument('file', type=Path, nargs='?', help='Input file (if not using stdin)')
     parser.add_argument('-o', '--output', type=Path, help='Output file (default: stdout)')
     parser.add_argument('-p', '--patterns', type=Path, help='Custom pattern file')
     parser.add_argument('--check', action='store_true', help='Check mode: find matches without replacing')
     parser.add_argument('-D', '--no-defaults', action='store_true', help='Disable all default patterns')
-    parser.add_argument('-d', '--disable', action='extend', nargs='+', metavar='NAME',
+    parser.add_argument('-d', '--disable', action='append', metavar='NAME',
                         choices=list(DEFAULT_PATTERNS.keys()) + ['ip'],
                         default=[], help=f'Disable specific default patterns ({valid_names}); "ip" disables both ipv4 and ipv6')
     parser.add_argument('-r', '--replace', nargs=2, metavar=('PATTERN', 'REPLACEMENT'),
@@ -263,6 +266,17 @@ Pattern file format:
     parser.add_argument('--no-user-config', action='store_true', help=f'Skip loading {default_pattern_file}')
 
     args = parser.parse_args()
+
+    has_stdin = not sys.stdin.isatty()
+    has_file = args.file is not None
+
+    if has_file and has_stdin:
+        logging.error("Cannot read from both standard input and a file. Please provide only one.")
+        return 1
+    if not has_file and not has_stdin:
+        parser.print_help()
+        logging.error("\nNo input provided. Provide a file argument or pipe data to standard input.")
+        return 1
 
     try:
         ignore_case = re.IGNORECASE if not args.case_sensitive else 0
@@ -275,8 +289,8 @@ Pattern file format:
         elif not args.no_user_config and default_pattern_file.exists():
             patterns.extend(load_patterns(default_pattern_file, ignore_case))
 
-        for pattern_str, replacement in args.replace:
-            patterns.append(compile_pattern(pattern_str, replacement, ignore_case))
+        for idx, (pattern_str, replacement) in enumerate(args.replace, 1):
+            patterns.append(compile_pattern(pattern_str, replacement, ignore_case, f"inline replace {idx}"))
 
         if not patterns:
             logging.error("No patterns defined")
