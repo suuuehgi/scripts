@@ -12,16 +12,37 @@ except ImportError:
 
 
 DEFAULT_PATTERNS: dict[str, tuple[str, str]] = {
-    'ipv4':   (r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)', '[IP]'),
-    'ipv6':   (r'(?<![\w:.])(?!::(?:[^\w:.]|$))(?:(?>([a-f0-9]{1,4})(?>:(?1)){7}|(?!(?:[a-f0-9:]*[a-f0-9](?>:|$)){8,})((?1)(?>:(?1)){0,6})?::(?2)?)|(?>(?>(?1)(?>:(?1)){5}:|(?!(?:[a-f0-9:]*[a-f0-9]:){6,})(?3)?::(?>((?1)(?>:(?1)){0,4}):)?)?(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?4)){3}))(?![\w:.])', '[IPv6]'),
-    'mac':    (r'(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}', '[MAC]'),
+    'ipv4': (
+        r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'                     # First 3 octets with dots (e.g., 192.168.1.)
+        r'(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',                             # Final octet (e.g., 255)
+        '[IP]'),
+    'ipv6': (
+        r'(?<![\w:.])(?!::(?:[^\w:.]|$))'                                        # Isolate IP and reject standalone "::"
+        r'(?:'                                                                   # Begin main match
+        r'(?>(?>([a-f0-9]{1,4})(?>:(?1)){7}|'                                    # Standard uncompressed IPv6 (8 segments)
+        r'(?!(?:[a-f0-9:]*[a-f0-9](?>:|$)){8,})((?1)(?>:(?1)){0,6})?::(?2)?)|'    # Compressed IPv6 (using ::)
+        r'(?>(?>(?1)(?>:(?1)){5}:|(?!(?:[a-f0-9:]*[a-f0-9]:){6,})(?3)?::(?>((?1)(?>:(?1)){0,4}):)?)?' # IPv4-mapped IPv6 prefix
+        r'(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?4)){3}))'            # IPv4-mapped IPv4 suffix
+        r')'                                                                     # End main match
+        r'(?![\w:.])',                                                           # Trailing boundary
+        '[IPv6]'),
+    'mac': (
+        r'(?:[0-9a-fA-F]{2}[:-]){5}'                                             # First 5 pairs separated by : or -
+        r'[0-9a-fA-F]{2}',                                                       # Final 6th pair
+        '[MAC]'),
     'email': (
         r'\b[A-Za-z0-9._%+-]+'                                                                 # Username part (e.g., john.doe)
         r'@[A-Za-z0-9.-]+\.'                                                                   # Domain part and dot (e.g., @example.)
         r'(?!(?:service|scope|slice|socket|target|timer|mount|automount|swap|path|device)\b)' # Forbid systemd units (drops .service, .scope, etc.)
         r'[A-Za-z]{2,}\b',                                                                      # Top-Level Domain (e.g., com, uk)
         '[EMAIL]'),
-    'uuid':   (r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b', '[UUID]'),
+    'uuid': (
+        r'\b[0-9a-fA-F]{8}-'                                                     # 8 hex digits
+        r'[0-9a-fA-F]{4}-'                                                       # 4 hex digits
+        r'[0-9a-fA-F]{4}-'                                                       # 4 hex digits
+        r'[0-9a-fA-F]{4}-'                                                       # 4 hex digits
+        r'[0-9a-fA-F]{12}\b',                                                    # 12 hex digits
+        '[UUID]'),
     'url':    (
         r"\b(?:[A-Za-z]{3,9}://|www\.)"                                        # Scheme (http://, ftp://) or www. prefix
         r"(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?@)?"                          # Optional user/password auth (user:pass@)
@@ -29,8 +50,18 @@ DEFAULT_PATTERNS: dict[str, tuple[str, str]] = {
         r"(?::\d+)?"                                                           # Optional port (:8080)
         r"(?:(?:/[A-Za-z0-9_\-\.~!*'();:@&=+$,/?#%]*[A-Za-z0-9_\-~/#+=%])|/)?",# Optional path/query/hash, ensuring it ends cleanly (/path?q=1#top)
         '[URL]'),
-    'jwt':    (r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b', '[JWT]'),
-    'apikey': (r'(?:api[_-]?key|apikey|token)[=:\s]+[\'"]?[A-Za-z0-9_-]{20,}[\'"]?', '[APIKEY]'),
+    'jwt': (
+        r'\beyJ[A-Za-z0-9_-]+\.'                                                 # JWT Header (eyJ = base64 for '{"')
+        r'[A-Za-z0-9_-]+\.'                                                      # JWT Payload
+        r'[A-Za-z0-9_-]+\b',                                                     # JWT Signature
+        '[JWT]'),
+    'apikey': (
+        r'(?:api[_-]?key|apikey|token)'                                          # Keyword indicating a secret
+        r'[=:\s]+'                                                               # Separator (equals, colon, space)
+        r'[\'"]?'                                                                # Optional opening quote
+        r'[A-Za-z0-9_-]{20,}'                                                    # The actual key (20+ chars)
+        r'[\'"]?',                                                               # Optional closing quote
+        '[APIKEY]'),
 }
 
 IP_ALIASES: frozenset[str] = frozenset({'ipv4', 'ipv6'})
