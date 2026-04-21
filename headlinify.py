@@ -1,27 +1,4 @@
 #!/usr/bin/env python3
-"""
-Headline/title capitalization script.
-
-Supports AP, APA, Chicago (default), and MLA styles.
-
-Usage:
-    python headline.py "your title here"             # Chicago (default)
-    python headline.py "your title here" ap
-    python headline.py "your title here" mla
-    echo "your title here" | python headline.py -
-    echo "your title here" | python headline.py - apa
-
-Style rules (word capitalization, excluding first/last word):
-    ap       Capitalize words with 4+ letters; lowercase everything shorter
-    apa      Capitalize words with 5+ letters; lowercase everything shorter
-    chicago  Capitalize major words; lowercase all articles, coordinating
-             conjunctions, and prepositions (regardless of length)
-    mla      Same as Chicago (MLA also lowercases all prepositions)
-
-In all styles: first word, last word, and the first word after a
-colon or em dash are always capitalized.
-"""
-
 import argparse
 import re
 import sys
@@ -45,6 +22,11 @@ PREPOSITIONS = {
     "versus", "via", "with", "within", "without",
 }
 
+# AP: only lowercase short prepositions (<=3 letters); long ones are capitalised
+AP_SHORT_PREP = {w for w in PREPOSITIONS if len(w) <= 3}
+AP_MINOR = ARTICLES | COORD_CONJ | AP_SHORT_PREP
+
+# Chicago/MLA: lowercase all prepositions regardless of length
 CHICAGO_MINOR = ARTICLES | COORD_CONJ | PREPOSITIONS
 MLA_MINOR     = ARTICLES | COORD_CONJ | PREPOSITIONS
 
@@ -89,7 +71,7 @@ def titlecase(text: str, style: str = "chicago") -> str:
         if force_cap:
             result.append(_cap_first(word))
         elif style == "ap":
-            result.append(_cap_first(word) if len(b) >= 4 else word.lower())
+            result.append(word.lower() if b in AP_MINOR else _cap_first(word))
         elif style == "apa":
             result.append(_cap_first(word) if len(b) >= 5 else word.lower())
         elif style == "chicago":
@@ -111,30 +93,34 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "styles:\n"
-            "  ap       capitalize words with 4+ letters\n"
+            "  ap       capitalize major words; lowercase articles, coord. conjunctions,\n"
+            "           and short prepositions (<=3 letters)\n"
             "  apa      capitalize words with 5+ letters\n"
-            "  chicago  lowercase articles, coordinating conjunctions, prepositions\n"
+            "  chicago  lowercase articles, coordinating conjunctions, all prepositions\n"
             "  mla      same as chicago\n\n"
             "First word, last word, and word after a colon/em dash are always capitalized.\n\n"
             "examples:\n"
-            '  python headline.py "the man with the golden gun"\n'
-            '  python headline.py "going from bad to worse" ap\n'
-            '  echo "your title here" | python headline.py -'
+            '  python headlinify.py "the man with the golden gun"\n'
+            '  python headlinify.py "going from bad to worse" ap\n'
+            '  echo "your title here" | python headlinify.py -'
         ),
     )
+
     parser.add_argument(
         "text",
         nargs="?",
         default="-",
         help='text to capitalize, or "-" to read from stdin (default: stdin)',
     )
+
     parser.add_argument(
         "style",
         nargs="?",
         default="ap",
         choices=VALID_STYLES,
-        help="capitalization style (default: chicago)",
+        help="capitalization style (default: ap)",
     )
+
     args = parser.parse_args()
 
     lines = sys.stdin.read().splitlines() if args.text == "-" else [args.text]
