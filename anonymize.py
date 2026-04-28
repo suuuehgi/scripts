@@ -166,7 +166,7 @@ def load_patterns(pattern_file: Path, ignore_case: int) -> list[tuple[re.Pattern
             pattern_str = line[:last_pipe]
             replacement = line[last_pipe + 1:]
 
-            if ',' in pattern_str and not any(c in pattern_str for c in r'[]()+*?.\^${}'):
+            if ',' in pattern_str and not any(c in pattern_str for c in r'[]()+*?\^${}'):
                 words = [w.strip() for w in pattern_str.split(',')]
                 pattern_str = r'\b(?:' + '|'.join(re.escape(w) for w in words) + r')\b'
 
