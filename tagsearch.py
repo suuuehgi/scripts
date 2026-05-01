@@ -215,6 +215,10 @@ def main(query: str):
         if not candidates:
             return
 
+        # keep only files under cwd
+        cwd = os.path.abspath('.')
+        candidates = {p for p in candidates if p.startswith(cwd + os.sep)}
+
         # 2. Per-File Evaluation
         safe_globals = {"__builtins__": {}}
         matches = []
@@ -238,7 +242,8 @@ def main(query: str):
                 pass
 
         for match in sorted(matches):
-            print(match)
+            # Print relative instead of absolute
+            print("./" + os.path.relpath(match))
 
     except QueryError as e:
         print(f"Error: {e}", file=sys.stderr)
