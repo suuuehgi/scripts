@@ -1,5 +1,9 @@
 # Scripts - Random Collection of Useful Scripts
 
+## `kde-konsole-theme-switcher`
+
+Automatically switches active KDE Konsole sessions between Dark and Light profile according to the Plasma color scheme while setting this profile as the new default.
+
 ## `tagsearch`
 
 Tag search engine built around `baloosearch6` for more refined searching.
