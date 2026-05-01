@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 HELP_TEXT = """\
 tagsearch — Search indexed files by tags and Dublin Core dates via Baloo.
@@ -185,7 +186,7 @@ def baloo_query(tag: str) -> set[str]:
     try:
         r = subprocess.run(['baloosearch6', f'tags:{tag_clean}'],
                            capture_output=True, text=True)
-        return {line.strip() for line in r.stdout.splitlines() if line.startswith('/')}
+        return {Path(line.strip()) for line in r.stdout.splitlines() if line.startswith('/')}
     except FileNotFoundError:
         raise QueryError("baloosearch6 not found. Is Baloo installed?")
 
@@ -216,8 +217,8 @@ def main(query: str):
             return
 
         # keep only files under cwd
-        cwd = os.path.abspath('.')
-        candidates = {p for p in candidates if p.startswith(cwd + os.sep)}
+        cwd = Path().cwd()
+        candidates = {p for p in candidates if p.is_relative_to(cwd)}
 
         # 2. Per-File Evaluation
         safe_globals = {"__builtins__": {}}
@@ -243,7 +244,7 @@ def main(query: str):
 
         for match in sorted(matches):
             # Print relative instead of absolute
-            print("./" + os.path.relpath(match))
+            print( "./" + str(match.relative_to(cwd)) )
 
     except QueryError as e:
         print(f"Error: {e}", file=sys.stderr)
