@@ -43,6 +43,9 @@ DEFAULT_PATTERNS: dict[str, tuple[str, str]] = {
         r'[0-9a-fA-F]{4}-'                                                       # 4 hex digits
         r'[0-9a-fA-F]{12}\b',                                                    # 12 hex digits
         '[UUID]'),
+    'id': (
+        r'\b[0-9a-fA-F]{10,}\b',                                                    # >= 10 hex digits
+        '[ID]'),
     'url':    (
         r"\b(?:[A-Za-z]{3,9}://|www\.)"                                        # Scheme (http://, ftp://) or www. prefix
         r"(?:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?@)?"                          # Optional user/password auth (user:pass@)
