@@ -1,5 +1,15 @@
 # Scripts - Random Collection of Useful Scripts
 
+## `stowy`
+A script to automate the task to savely move a file/folder to the stow dir (GNU stow).
+
+```
+> stowy.py <file> <package>
+```
+1. Creates `$STOW_DIR/<package>/path/to/file` if not present.
+2. Moves <file> to latter
+3. Creates symlink using `stow <package>`
+
 ## `kde-konsole-theme-switcher`
 
 Automatically switches active KDE Konsole sessions between Dark and Light profile according to the Plasma color scheme while setting this profile as the new default.
