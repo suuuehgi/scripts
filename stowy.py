@@ -10,6 +10,7 @@ Sicherheit und Metadaten:
 """
 from __future__ import annotations
 
+import argparse
 import errno
 import os
 import re
@@ -512,13 +513,31 @@ def cleanup_partial_stow(abs_src: Path, dest: Path, is_dir: bool) -> bool:
 def main() -> None:
     reconfigure_stderr()
 
-    if len(sys.argv) == 2 and sys.argv[1] in {"-h", "--help"}:
-        print(HELP_TEXT)
-        sys.exit(0)
+    parser = argparse.ArgumentParser(
+            description=(
+                "Importiert Dateien oder Verzeichnisse aus HOME in ein GNU-Stow-Paket."
+            )
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Stow-Ausgabe anzeigen; wiederholbar bis -vvvvv (Level 5).",
+    )
+    parser.add_argument("path", help="Zu importierende Datei oder Verzeichnis.")
+    parser.add_argument("package", help="Name des Stow-Pakets.")
+    args = parser.parse_args()
+    
+    if args.verbose > 5:
+        print(
+            f"Warnung: Verbosity-Level {args.verbose} auf 5 begrenzt.",
+            file=sys.stderr,
+        )
+        args.verbose = 5
 
-    if len(sys.argv) != 3:
-        print("Nutzung: stowy <pfad> <paket>", file=sys.stderr)
-        sys.exit(1)
+    raw_src = args.path
+    pkg = args.package
 
     home_env = os.environ.get("HOME", "")
     if not home_env:
@@ -527,7 +546,6 @@ def main() -> None:
     if shutil.which("stow") is None:
         fail("'stow' nicht gefunden.")
 
-    raw_src, pkg = sys.argv[1], sys.argv[2]
     if not raw_src:
         fail("Leerer Quellpfad.")
 
@@ -695,8 +713,9 @@ def main() -> None:
                 os.fspath(abs_stow),
                 "-t",
                 os.fspath(abs_home),
+                f"--verbose={args.verbose}" if args.verbose else "",
                 "-S",
-                pkg,
+                pkg
             ],
             stdin=subprocess.DEVNULL,
             capture_output=True,
@@ -704,6 +723,7 @@ def main() -> None:
             errors="backslashreplace",
             check=False,
         )
+
         if res.returncode != 0:
             err_msg = res.stderr.strip() or res.stdout.strip()
             detail = f": {err_msg}" if err_msg else ""
@@ -714,6 +734,13 @@ def main() -> None:
         if is_dir:
             modes_touched = True
             restore_dir_modes(abs_src, dir_modes)
+
+        if args.verbose:
+            if res.stdout:
+                print(res.stdout, end="")
+            if res.stderr:
+                print(res.stderr, end="", file=sys.stderr)
+
     except (Exception, KeyboardInterrupt) as exc:
         reason = format_reason(exc)
         src_exists = path_present(abs_src)
