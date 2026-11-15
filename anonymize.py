@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 import argparse
+import argcomplete
 import logging
 import sys
 from pathlib import Path
@@ -310,6 +312,7 @@ Note: lower/Title/UPPER case of each match is being mirrored. E.g. "Anthony was 
     parser.add_argument('-i', '--case-sensitive', action='store_true', help='Enable case-sensitive matching (default: insensitive)')
     parser.add_argument('--no-user-config', action='store_true', help=f'Skip loading {default_pattern_file}')
 
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     has_stdin = not sys.stdin.isatty()
